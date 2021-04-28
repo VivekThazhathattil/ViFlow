@@ -1,0 +1,37 @@
+g++ -std=c++17 -c ./src/*.cpp
+./src/gui.cpp: In member function ‘void Gui::Run()’:
+./src/gui.cpp:5:115: error: no match for call to ‘(sf::RenderWindow) (sf::RenderWindow)’
+    5 |  this->window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM", sf::Style::Titlebar | sf::Style::Close));
+      |                                                                                                                   ^
+./src/gui.cpp:10:87: error: no match for ‘operator[]’ (operand types are ‘sf::Vector2f’ {aka ‘sf::Vector2<float>’} and ‘int’)
+   10 |  sf::RectangleShape shapeGrid(sf::Vector2f(this->mesh.gridSizeX, this->mesh.gridSizeY)[this->mesh.numI * this->mesh.numJ];
+      |                                                                                       ^
+./src/gui.cpp:14:13: error: no match for ‘operator[]’ (operand types are ‘sf::RectangleShape’ and ‘int’)
+   14 |    shapeGrid[this->mesh.IDX(i,j)].setPosition(\
+      |             ^
+./src/gui.cpp:18:13: error: no match for ‘operator[]’ (operand types are ‘sf::RectangleShape’ and ‘int’)
+   18 |    shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color::White);
+      |             ^
+./src/gui.cpp:36:32: error: no match for ‘operator[]’ (operand types are ‘sf::RectangleShape’ and ‘int’)
+   36 |     this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
+      |                                ^
+./src/mesh.cpp:25:5: error: no declaration matches ‘int Mesh::IDX(int*, int*)’
+   25 | int Mesh::IDX(int *x, int *y){
+      |     ^~~~
+In file included from ./src/mesh.cpp:1:
+./src/include/mesh.h:16:7: note: candidate is: ‘int Mesh::IDX(int, int)’
+   16 |   int IDX(int x, int y);
+      |       ^~~
+./src/include/mesh.h:1:7: note: ‘class Mesh’ defined here
+    1 | class Mesh{
+      |       ^~~~
+In file included from ./src/include/gui.h:3,
+                 from ./src/test.cpp:3:
+./src/include/mesh.h:1:7: error: redefinition of ‘class Mesh’
+    1 | class Mesh{
+      |       ^~~~
+In file included from ./src/test.cpp:2:
+./src/include/mesh.h:1:7: note: previous definition of ‘class Mesh’
+    1 | class Mesh{
+      |       ^~~~
+make: *** [Makefile:2: build] Error 1
