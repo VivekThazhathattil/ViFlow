@@ -1,3 +1,4 @@
+#pragma once
 #define WINDOW_X 600
 #define WINDOW_Y 600
 #define MESH_SIZE_X 500

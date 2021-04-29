@@ -1,7 +1,8 @@
 #include "include/gui.h"
 #include <stdio.h>
 
-Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y), window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM",sf::Style::Close)) {} 
+Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
+		     window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM",sf::Style::Close)) {} 
 Gui::~Gui(){};
 void Gui::Run(){
 	// calculate the spacing required to position the mesh in the screen center
@@ -18,7 +19,7 @@ void Gui::Run(){
 					this->mesh.meshLocX + i*this->mesh.gridSizeX,\
 					this->mesh.meshLocY + j*this->mesh.gridSizeY\
 					);
-			printf("(%d,%d)\n", this->mesh.meshLocX + i*this->mesh.gridSizeX, this->mesh.meshLocY + j*this->mesh.gridSizeY);
+//			printf("(%d,%d)\n", this->mesh.meshLocX + i*this->mesh.gridSizeX, this->mesh.meshLocY + j*this->mesh.gridSizeY);
 //			printf("(%d,%d)\n",i,j);
 //			printf(" this->mesh.meshLocX = %d, i = %d, this->mesh.gridSizeX = %d, i*this->mesh.gridSizeX = %d", this->mesh.meshLocX, i, this->mesh.gridSizeX, i*this->mesh.gridSizeX);
 			if ( (i+j)%2 == 0) 
