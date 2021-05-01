@@ -4,7 +4,7 @@
  * TODO: write the lin_solv, diffuse, advect, project, step functions as just individual functions not associated with any class
  * TODO: find out what the purpose of s is
  */
-#define ADD_DENSITY 5000
+#define ADD_DENSITY 500
 #include "include/gui.h"
 #include <stdio.h>
 #include <math.h>
@@ -199,9 +199,13 @@ void Gui::advect(int b, float *d, float *d0,  float *velocX, float *velocY, floa
 }
 
 Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
-		     window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM",sf::Style::Close)) {} 
-Gui::~Gui(){};
+/*		     vf(sf::LineStrip, (MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)),\ */
+			   window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFlow",sf::Style::Close)){}
+Gui::~Gui(){}
 void Gui::Run(){
+
+	//f key pressed
+	bool fpressed = false;
 
 	// load font 
         if (!this->font.loadFromFile("res/arial.ttf"))
@@ -231,6 +235,8 @@ void Gui::Run(){
 					this->mesh.meshLocX + i*this->mesh.gridSizeX,\
 					this->mesh.meshLocY + j*this->mesh.gridSizeY\
 					);
+			shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(1);
+			shapeGrid[this->mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
 			shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color::Black);
 
 //			 debug snippet to visualize the raw grid  */
@@ -249,6 +255,13 @@ void Gui::Run(){
 		{
 			if (e.type == sf::Event::Closed)
 				this->window.close();
+			else if(e.type == sf::Event::KeyPressed)
+				if(e.key.code == sf::Keyboard::F){
+					if(!fpressed)
+						fpressed = true;
+					else
+						fpressed = false;
+				}
 		}
 
 		this->window.clear();
@@ -298,6 +311,11 @@ void Gui::Run(){
 			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].s)\
 				);
 		this->window.draw(this->text);
+		if(fpressed){
+			this->showVelocityField();
+			for (auto& arrow : this->vf)
+			    this->window.draw(arrow);
+		}
 		this->window.display();
 	}
 }
@@ -349,4 +367,23 @@ void Gui::addVelocity(sf::Vector2i coords, int amountX, int amountY){
 }
 
 void Gui::showDetails_stub(){
+}
+
+void Gui::showVelocityField(){
+	float x = 0.0, y = 0.0;
+	float radAngle = 0;
+	for(int i = 0; i < this->mesh.numI; i++){
+		for (int j = 0; j < this->mesh.numJ; j++){
+			// get the center location for each rectangle grid
+			x = this->mesh.meshLocX + (this->mesh.gridSizeX * i) + this->mesh.gridSizeX/2;
+			y = this->mesh.meshLocY + (this->mesh.gridSizeY * j) + this->mesh.gridSizeY/2;
+			radAngle = atan2(this->fluidCube[this->mesh.IDX(i,j)].uY, this->fluidCube[this->mesh.IDX(i,j)].uX);
+		//	printf("angle = %f\n", 180/M_PI*radAngle);
+			this->vf[this->mesh.IDX(i,j)].setSize(sf::Vector2f(10,1));
+			this->vf[this->mesh.IDX(i,j)].setPosition(x,y);
+			this->vf[this->mesh.IDX(i,j)].setFillColor(sf::Color::Red);
+			this->vf[this->mesh.IDX(i,j)].setRotation(180/M_PI*radAngle);
+		}
+
+	}
 }

@@ -19,6 +19,8 @@ class Gui{
 		sf::RenderWindow window;
 		Mesh mesh;
 		std::vector<FluidCube> fluidCube;
+
+		sf::RectangleShape vf[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)]; // for velocity field
 	public:
 		Gui();
 		~Gui();
@@ -35,4 +37,6 @@ class Gui{
 
 		void showDetails_stub();
 		sf::Vector2i getMousePointedGrid(sf::Vector2i coords);
+
+		void showVelocityField();
 };
