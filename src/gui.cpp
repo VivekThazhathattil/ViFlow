@@ -4,10 +4,11 @@
  * TODO: write the lin_solv, diffuse, advect, project, step functions as just individual functions not associated with any class
  * TODO: find out what the purpose of s is
  */
-#define ADD_DENSITY 50000
+#define ADD_DENSITY 5000
 #include "include/gui.h"
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 void Gui::fluidCubeStep()
 {
@@ -16,18 +17,6 @@ void Gui::fluidCubeStep()
     float visc     = this->fluidCube[0].visc;
     float diff     = this->fluidCube[0].diff;
     float dt       = this->fluidCube[0].dt;
-
-/*    std::vector<float> uX, uY, uX0, uY0, s, density;
-
-    for (int i = 0; i < this->fluidCube.size(); i++){
-	    uX.push_back(this->fluidCube[i].uX);
-	    uY.push_back(this->fluidCube[i].uY);
-	    uX0.push_back(this->fluidCube[i].uX0);
-	    uY0.push_back(this->fluidCube[i].uY0);
-	    s.push_back(this->fluidCube[i].s);
-	    density.push_back(this->fluidCube[i].density);
-    }*/
-
 
     for (int i = 0; i < this->fluidCube.size(); i++){
 	    this->uX[i] = this->fluidCube[i].uX;
@@ -40,9 +29,10 @@ void Gui::fluidCubeStep()
 
     for(int i = 0; i < this->mesh.numI; i++){
 	    for(int j = 0; j < this->mesh.numJ; j++){
-		    this->s[this->mesh.IDX(i,j)] = this->density[this->mesh.IDX(i,j)];
-		    this->uX0[this->mesh.IDX(i,j)] = this->uX[this->mesh.IDX(i,j)];
-		    this->uY0[this->mesh.IDX(i,j)] = this->uY[this->mesh.IDX(i,j)];
+		    this->s[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].density;
+		    this->fluidCube[this->mesh.IDX(i,j)].s = this->fluidCube[this->mesh.IDX(i,j)].density;
+		    this->uX0[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].uX;
+		    this->uY0[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].uY;
 	    }
     }
 
@@ -212,8 +202,20 @@ Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
 		     window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM",sf::Style::Close)) {} 
 Gui::~Gui(){};
 void Gui::Run(){
+
+	// load font 
+        if (!this->font.loadFromFile("res/arial.ttf"))
+        {
+            // error...
+        }
+	this->text.setFont(this->font);
+	this->text.setCharacterSize(14); // in pixels, not points!
+        this->text.setPosition(10, this->window.getSize().y - 14 - 100);
+
+	int amountX = 0, amountY = 0;
 	int flag = 1;
 	sf::Vector2i currMouseCoords = sf::Mouse::getPosition(this->window);
+	sf::Vector2i prevMouseCoords = currMouseCoords;
 	FluidCube fC; // blue print
 	// calculate the spacing required to position the mesh in the screen center
 	this->mesh.getMeshLoc(WINDOW_X, WINDOW_Y);
@@ -256,7 +258,11 @@ void Gui::Run(){
 			currMouseCoords = sf::Mouse::getPosition(this->window);
 			this->addDensity(currMouseCoords, ADD_DENSITY);
 		}
-
+		currMouseCoords = sf::Mouse::getPosition(this->window);
+		amountX = currMouseCoords.x - prevMouseCoords.x;
+		amountY = currMouseCoords.y - prevMouseCoords.y;
+		this->addVelocity(currMouseCoords, amountX, amountY);
+		this->showDetails_stub();
 		if (flag == 1){
 			this->fluidCube[this->mesh.IDX(30,30)].density += ADD_DENSITY;
 			flag = 0;
@@ -271,22 +277,40 @@ void Gui::Run(){
 				this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
 			}
 		}
+		prevMouseCoords = currMouseCoords;
+		currMouseCoords = this->getMousePointedGrid(currMouseCoords);
+        	this->text.setString("Density: " +  \
+				std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].density) + \
+				"\n" +\
+				" uX0: " +\
+			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uX0) +\
+				"\n" +\
+				" uY0: " +\
+			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uY0) +\
+				"\n" +\
+				" uX: " +\
+			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uX) +\
+				"\n" +\
+				" uY: " +\
+			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uY) +\
+				"\n" +\
+				" s: " +\
+			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].s)\
+				);
+		this->window.draw(this->text);
 		this->window.display();
 	}
 }
 
-
-void Gui::addDensity(sf::Vector2i coords, int amount){
-	// get the grid IDX for the mouse click location
+sf::Vector2i Gui::getMousePointedGrid( sf::Vector2i coords){
 	bool flag = false;
-	int i = 0,j = 0;
-//	printf("addDensity invoked\n");
-	for (i = 0; i < this->mesh.numI - 1; i++){
-		for (j = 0; j < this->mesh.numJ - 1; j++){
-		if (coords.x >= this->mesh.meshLocX + this->mesh.gridSizeX * i  &&\
-				coords.x < this->mesh.meshLocX + this->mesh.gridSizeX * (i+1) &&\
-				coords.y >= this->mesh.meshLocY + this->mesh.gridSizeY * j &&\
-				coords.y < this->mesh.meshLocY + this->mesh.gridSizeY * (j+1)){
+	sf::Vector2i i;
+	for (i.x = 0; i.x < this->mesh.numI - 1; i.x++){
+		for (i.y = 0; i.y < this->mesh.numJ - 1; i.y++){
+		if (coords.x >= this->mesh.meshLocX + this->mesh.gridSizeX * i.x  &&\
+				coords.x < this->mesh.meshLocX + this->mesh.gridSizeX * (i.x+1) &&\
+				coords.y >= this->mesh.meshLocY + this->mesh.gridSizeY * i.y &&\
+				coords.y < this->mesh.meshLocY + this->mesh.gridSizeY * (i.y+1)){
 			flag = true;
 			break;
 		}
@@ -294,6 +318,14 @@ void Gui::addDensity(sf::Vector2i coords, int amount){
 		if(flag)
 			break;
 	}
+	return i;
+}
+
+void Gui::addDensity(sf::Vector2i coords, int amount){
+	int i,j;
+	sf::Vector2i val = this->getMousePointedGrid(coords);
+	i = val.x;
+	j = val.y;
 /*	printf("coordx = %d, coordy = %d\n", coords.x, coords.y);
 	printf("numI = %d, numJ = %d, meshLocX = %d, meshLocY = %d, gridSizeX = %d, gridSizeY = %d\n",this->mesh.numI, this->mesh.numJ, this->mesh.meshLocX, this->mesh.meshLocY, this->mesh.gridSizeX, this->mesh.gridSizeY);
 	printf("i = %d, j = %d \n",i,j);*/
@@ -301,4 +333,20 @@ void Gui::addDensity(sf::Vector2i coords, int amount){
 		this->fluidCube[this->mesh.IDX(i,j)].density += amount;
 
 //	this->fluidCube[this->mesh.IDX(30,30)].density += amount;
+}
+
+
+void Gui::addVelocity(sf::Vector2i coords, int amountX, int amountY){
+	int i,j;
+	sf::Vector2i val = this->getMousePointedGrid(coords);
+	i = val.x;
+	j = val.y;
+	if ( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1){
+		this->fluidCube[this->mesh.IDX(i,j)].uX += amountX;
+		this->fluidCube[this->mesh.IDX(i,j)].uY += amountY;
+//		printf("u : (%f,%f)\n",this->fluidCube[this->mesh.IDX(i,j)].uX0,this->fluidCube[this->mesh.IDX(i,j)].uY0);
+	}
+}
+
+void Gui::showDetails_stub(){
 }
