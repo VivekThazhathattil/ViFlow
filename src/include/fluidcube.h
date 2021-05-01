@@ -6,7 +6,7 @@ struct FluidCube{
 		float p = 0; // pressure
 		float visc = 0.0001f; // viscosity
 		float density = 0;
-		float diff = 0.001f; // amount of diffusion
+		float diff = 0.0005f; // amount of diffusion
 		float dt = 0.02; // time interval
 		float uX = 0; // velocity in x direction
 		float uY = 0; // velocity in y direction

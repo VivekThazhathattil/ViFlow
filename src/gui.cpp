@@ -4,7 +4,7 @@
  * TODO: write the lin_solv, diffuse, advect, project, step functions as just individual functions not associated with any class
  * TODO: find out what the purpose of s is
  */
-#define ADD_DENSITY 500
+#define ADD_DENSITY 5000
 #include "include/gui.h"
 #include <stdio.h>
 #include <math.h>
@@ -59,19 +59,13 @@ void Gui::fluidCubeStep()
 
 void Gui::setBnd(int b, float *x, int nX, int nY)
 {
-    switch(b){
-	    case 1: //top and bottom boundaries
-		    for (int i = 0; i < nX; i++){
-			    x[this->mesh.IDX(i,0)] = -x[this->mesh.IDX(i,0)];
-			    x[this->mesh.IDX(i,nY-1)] = -x[this->mesh.IDX(i,nY-1)];
-		    }
-		    break;
-	    case 2: // left and right boundaries
-		    for (int j = 0; j < nY; j++){
-			    x[this->mesh.IDX(0,j)] = -x[this->mesh.IDX(0,j)];
-			    x[this->mesh.IDX(nX-1,j)] = -x[this->mesh.IDX(nX-1,j)];
-		    }
-		    break;
+    for(int i = 1; i < nX - 1; i++) {
+        x[this->mesh.IDX(i, 0  )] = b == 2 ? -x[this->mesh.IDX(i, 1  )] : x[this->mesh.IDX(i, 1  )];
+        x[this->mesh.IDX(i, nY-1)] = b == 2 ? -x[this->mesh.IDX(i, nY-2)] : x[this->mesh.IDX(i, nY-2)];
+    }
+    for(int j = 1; j < nY - 1; j++) {
+        x[this->mesh.IDX(0  , j)] = b == 1 ? -x[this->mesh.IDX(1  , j)] : x[this->mesh.IDX(1  , j)];
+        x[this->mesh.IDX(nX-1, j)] = b == 1 ? -x[this->mesh.IDX(nX-2, j)] : x[this->mesh.IDX(nX-2, j)];
     }
 
 	// averaging corner values
@@ -347,7 +341,8 @@ void Gui::addDensity(sf::Vector2i coords, int amount){
 /*	printf("coordx = %d, coordy = %d\n", coords.x, coords.y);
 	printf("numI = %d, numJ = %d, meshLocX = %d, meshLocY = %d, gridSizeX = %d, gridSizeY = %d\n",this->mesh.numI, this->mesh.numJ, this->mesh.meshLocX, this->mesh.meshLocY, this->mesh.gridSizeX, this->mesh.gridSizeY);
 	printf("i = %d, j = %d \n",i,j);*/
-	if ( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1)
+	if (( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1) || \
+	 ( i != 0 || j != 0))
 		this->fluidCube[this->mesh.IDX(i,j)].density += amount;
 
 //	this->fluidCube[this->mesh.IDX(30,30)].density += amount;
@@ -359,7 +354,8 @@ void Gui::addVelocity(sf::Vector2i coords, int amountX, int amountY){
 	sf::Vector2i val = this->getMousePointedGrid(coords);
 	i = val.x;
 	j = val.y;
-	if ( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1){
+	if (( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1) ||\
+	 ( i != 0 || j != 0)){
 		this->fluidCube[this->mesh.IDX(i,j)].uX += amountX;
 		this->fluidCube[this->mesh.IDX(i,j)].uY += amountY;
 //		printf("u : (%f,%f)\n",this->fluidCube[this->mesh.IDX(i,j)].uX0,this->fluidCube[this->mesh.IDX(i,j)].uY0);
