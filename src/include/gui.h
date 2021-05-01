@@ -7,6 +7,13 @@
 
 class Gui{
 	private: 
+		float uX[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		float uY[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		float uX0[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		float uY0[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		float s[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		float density[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+
 		sf::RenderWindow window;
 		Mesh mesh;
 		std::vector<FluidCube> fluidCube;

@@ -4,7 +4,7 @@
  * TODO: write the lin_solv, diffuse, advect, project, step functions as just individual functions not associated with any class
  * TODO: find out what the purpose of s is
  */
-#define ADD_DENSITY 200
+#define ADD_DENSITY 50000
 #include "include/gui.h"
 #include <stdio.h>
 #include <math.h>
@@ -28,34 +28,43 @@ void Gui::fluidCubeStep()
 	    density.push_back(this->fluidCube[i].density);
     }*/
 
-    float uX[this->fluidCube.size()], \
-	    uY[this->fluidCube.size()], \
-	    uX0[this->fluidCube.size()], \
-	    uY0[this->fluidCube.size()], \
-	    s[this->fluidCube.size()], \
-	    density[this->fluidCube.size()];
 
     for (int i = 0; i < this->fluidCube.size(); i++){
-	    uX[i] = this->fluidCube[i].uX;
-	    uY[i] = this->fluidCube[i].uY;
-	    uX0[i] = this->fluidCube[i].uX0;
-	    uY0[i] = this->fluidCube[i].uY0;
-	    s[i] = this->fluidCube[i].s;
-	    density[i] = this->fluidCube[i].density;
+	    this->uX[i] = this->fluidCube[i].uX;
+	    this->uY[i] = this->fluidCube[i].uY;
+	    this->uX0[i] = this->fluidCube[i].uX0;
+	    this->uY0[i] = this->fluidCube[i].uY0;
+	    this->s[i] = this->fluidCube[i].s;
+	    this->density[i] = this->fluidCube[i].density;
     }
 
-    this->diffuse(1, uX, uX0, visc, dt, kITER, nX, nY);
-    this->diffuse(2, uY, uY0, visc, dt, kITER, nX, nY);
+    for(int i = 0; i < this->mesh.numI; i++){
+	    for(int j = 0; j < this->mesh.numJ; j++){
+		    this->s[this->mesh.IDX(i,j)] = this->density[this->mesh.IDX(i,j)];
+		    this->uX0[this->mesh.IDX(i,j)] = this->uX[this->mesh.IDX(i,j)];
+		    this->uY0[this->mesh.IDX(i,j)] = this->uY[this->mesh.IDX(i,j)];
+	    }
+    }
 
-    this->project(uX0, uY0, uX, uY, kITER, nX, nY);
+    this->diffuse(1, this->uX0, this->uX, visc, dt, kITER, nX, nY);
+    this->diffuse(2, this->uY0, this->uY, visc, dt, kITER, nX, nY);
 
-    this->advect(1, uX, uX0, uX0, uY0, dt, nX, nY);
-    this->advect(2, uY, uY0, uX0, uY0, dt, nX, nY);
+    this->project(this->uX0, this->uY0, this->uX, this->uY, kITER, nX, nY);
 
-    this->project(uX, uY, uX0, uY0, kITER, nX, nY);
+    this->advect(1, this->uX, this->uX0, this->uX0, this->uY0, dt, nX, nY);
+    this->advect(2, this->uY, this->uY0, this->uX0, this->uY0, dt, nX, nY);
 
-    this->diffuse(0, s, density, diff, dt, kITER, nX, nY);
-    this->advect(0, density, s, uX, uY, dt, nX, nY);
+    this->project(this->uX, this->uY, this->uX0, this->uY0, kITER, nX, nY);
+
+    this->diffuse(0, this->s, this->density, diff, dt, kITER, nX, nY);
+    for(int i = 0; i < this->mesh.numI; i++){
+	    for(int j = 0; j < this->mesh.numJ; j++){
+		    this->fluidCube[this->mesh.IDX(i,j)].density = this->density[this->mesh.IDX(i,j)];
+		    this->fluidCube[this->mesh.IDX(i,j)].uX =  this->uX[this->mesh.IDX(i,j)];
+		    this->fluidCube[this->mesh.IDX(i,j)].uY =  this->uY[this->mesh.IDX(i,j)];
+	    }
+    }
+    this->advect(0, this->density, this->s, this->uX, this->uY, dt, nX, nY);
 }
 
 void Gui::setBnd(int b, float *x, int nX, int nY)
@@ -99,9 +108,16 @@ void Gui::linSolve(int b, float *x, float *x0, float a, float c, int nX, int nY)
             }
         setBnd(b, x, nX, nY);
     }
+    /*for (int i = 0; i < this->mesh.numI; i++){
+	    for (int j = 0;j < this->mesh.numJ; j++){
+		    printf("%f ",this->fluidCube[this->mesh.IDX(i,j)].density);
+	    }
+	    printf("\n");
+    }
+    printf("\n\n");*/
 }
 
-void Gui::diffuse (int b, float *x, float *x0, float diff, float dt, int iter, int nX, int nY) 
+void Gui::diffuse (int b, float *x0, float *x, float diff, float dt, int iter, int nX, int nY) 
 {
     float a = dt * diff * (nX - 2) * (nY - 2);
     linSolve(b, x, x0, a, 1 + 6 * a, nX, nY);
@@ -196,6 +212,7 @@ Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
 		     window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFDM",sf::Style::Close)) {} 
 Gui::~Gui(){};
 void Gui::Run(){
+	int flag = 1;
 	sf::Vector2i currMouseCoords = sf::Mouse::getPosition(this->window);
 	FluidCube fC; // blue print
 	// calculate the spacing required to position the mesh in the screen center
@@ -221,7 +238,7 @@ void Gui::Run(){
 			shapeGrid[this->mesh.IDX(i,j)].setSize(sf::Vector2f(this->mesh.gridSizeX, this->mesh.gridSizeY));
 		}
 	}
-		
+
 	while (this->window.isOpen())
 	{
 
@@ -235,17 +252,21 @@ void Gui::Run(){
 		this->window.clear();
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
-			printf("Left Mouse Button pressed!");
+			//printf("Left Mouse Button pressed!\n");
 			currMouseCoords = sf::Mouse::getPosition(this->window);
 			this->addDensity(currMouseCoords, ADD_DENSITY);
 		}
 
+		if (flag == 1){
+			this->fluidCube[this->mesh.IDX(30,30)].density += ADD_DENSITY;
+			flag = 0;
+		}
 		this->fluidCubeStep();
 		for (int i = 0; i < this->mesh.numI; i++){
 			for (int j = 0; j < this->mesh.numJ; j++){
 				shapeGrid[this->mesh.IDX(i,j)].setFillColor(\
 						sf::Color(255, 255, 255, (this->fluidCube[this->mesh.IDX(i,j)].density > 255) \
-						? 255 : this->fluidCube[this->mesh.IDX(i,j)].density)
+						? 255 : this->fluidCube[this->mesh.IDX(i,j)].density)\
 					);
 				this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
 			}
@@ -257,16 +278,27 @@ void Gui::Run(){
 
 void Gui::addDensity(sf::Vector2i coords, int amount){
 	// get the grid IDX for the mouse click location
-	int i,j;
+	bool flag = false;
+	int i = 0,j = 0;
+//	printf("addDensity invoked\n");
 	for (i = 0; i < this->mesh.numI - 1; i++){
 		for (j = 0; j < this->mesh.numJ - 1; j++){
-		if (coords.x > this->mesh.meshLocX + this->mesh.gridSizeX * i  &&\
+		if (coords.x >= this->mesh.meshLocX + this->mesh.gridSizeX * i  &&\
 				coords.x < this->mesh.meshLocX + this->mesh.gridSizeX * (i+1) &&\
-				coords.y > this->mesh.meshLocY + this->mesh.gridSizeY * i &&\
-				coords.y < this->mesh.meshLocY + this->mesh.gridSizeY * (i+1))
+				coords.y >= this->mesh.meshLocY + this->mesh.gridSizeY * j &&\
+				coords.y < this->mesh.meshLocY + this->mesh.gridSizeY * (j+1)){
+			flag = true;
 			break;
 		}
+		}
+		if(flag)
+			break;
 	}
+/*	printf("coordx = %d, coordy = %d\n", coords.x, coords.y);
+	printf("numI = %d, numJ = %d, meshLocX = %d, meshLocY = %d, gridSizeX = %d, gridSizeY = %d\n",this->mesh.numI, this->mesh.numJ, this->mesh.meshLocX, this->mesh.meshLocY, this->mesh.gridSizeX, this->mesh.gridSizeY);
+	printf("i = %d, j = %d \n",i,j);*/
 	if ( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1)
 		this->fluidCube[this->mesh.IDX(i,j)].density += amount;
+
+//	this->fluidCube[this->mesh.IDX(30,30)].density += amount;
 }
