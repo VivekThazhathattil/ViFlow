@@ -9,9 +9,9 @@
 #include <math.h>
 #include <string.h>
 
-#define ADD_DENSITY 200
+#define ADD_DENSITY 1000
 #define DIFFUSION 0.0001
-#define VISCOSITY 0.0001
+#define VISCOSITY 0.00001
 #define DT 0.2
 
 #define IX(x, y) ((x) + (y) * (MESH_SIZE_X/GRID_SIZE_X))
@@ -216,6 +216,8 @@ void Gui::Run(){
 
 	//f key pressed
 	bool fpressed = false;
+	bool gpressed = false;
+	bool cpressed = false;
 
 	// load font 
         if (!this->font.loadFromFile("res/arial.ttf"))
@@ -243,8 +245,6 @@ void Gui::Run(){
 					this->mesh.meshLocX + i*this->mesh.gridSizeX,\
 					this->mesh.meshLocY + j*this->mesh.gridSizeY\
 					);
-			shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(1);
-			shapeGrid[this->mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
 			shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color::Black);
 
 			shapeGrid[this->mesh.IDX(i,j)].setSize(sf::Vector2f(this->mesh.gridSizeX, this->mesh.gridSizeY));
@@ -260,12 +260,12 @@ void Gui::Run(){
 			if (e.type == sf::Event::Closed)
 				this->window.close();
 			else if(e.type == sf::Event::KeyPressed)
-				if(e.key.code == sf::Keyboard::F){
-					if(!fpressed)
-						fpressed = true;
-					else
-						fpressed = false;
-				}
+				if(e.key.code == sf::Keyboard::F)
+					fpressed = !fpressed;
+				else if(e.key.code == sf::Keyboard::G)
+					gpressed = !gpressed;
+				else if(e.key.code == sf::Keyboard::C)
+					cpressed = !cpressed;
 		}
 
 		this->window.clear();
@@ -287,29 +287,38 @@ void Gui::Run(){
 		this->fluidCubeStep(this->cube);
 		for (int i = 0; i < this->mesh.numI; i++){
 			for (int j = 0; j < this->mesh.numJ; j++){
+				if(this->cube->density[this->mesh.IDX(i,j)] < 1){
+					this->cube->density[this->mesh.IDX(i,j)] = 0;
+				}
 				shapeGrid[this->mesh.IDX(i,j)].setFillColor(\
 						sf::Color(255, 255, 255, (this->cube->density[this->mesh.IDX(i,j)] > 255) \
 						? 255 : this->cube->density[this->mesh.IDX(i,j)])\
 					);
+				if(gpressed){
+					shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(1);
+					shapeGrid[this->mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
+				}
+				else
+					shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(0);
 				this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
 			}
 		}
 		prevMouseCoords = currMouseCoords;
 		currMouseCoords = this->getMousePointedGrid(currMouseCoords);
         	this->text.setString("Density: " +  \
-				std::to_string((int)this->cube->density[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) + \
+				std::to_string((float)this->cube->density[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) + \
 				"\n" +\
 				" uX0: " +\
-			       	std::to_string((int)this->cube->uX0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)this->cube->uX0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY0: " +\
-			       	std::to_string((int)this->cube->uY0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)this->cube->uY0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uX: " +\
-			       	std::to_string((int)this->cube->uX[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)this->cube->uX[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY: " +\
-			       	std::to_string((int)this->cube->uY[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)this->cube->uY[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" s: " +\
 			       	std::to_string((int)this->cube->s[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)])\
