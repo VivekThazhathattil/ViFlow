@@ -2,7 +2,7 @@
 ![mp4](res/common.mp4)
 ![mp4](res/grids.mp4)
 
-# Double Pendulum in C++
+# 2D flow simulation in C++
 Program written in C++ using SFML libraries to demonstrate Jos Stam's "Real Time Fluid Dynamics" concepts.
 
 # Prerequisites
