@@ -1,44 +1,9 @@
 g++ -g -std=c++17 -c ./src/*.cpp
-./src/gui.cpp: In member function ‘void Gui::Run()’:
-./src/gui.cpp:316:30: error: no matching function for call to ‘sf::RenderWindow::draw(std::vector<sf::RectangleShape>&)’
-  316 |    this->window.draw(this->vf);
-      |                              ^
-In file included from /usr/include/SFML/Graphics.hpp:45,
-                 from ./src/include/gui.h:1,
-                 from ./src/gui.cpp:8:
-/usr/include/SFML/Graphics/RenderTarget.hpp:237:10: note: candidate: ‘void sf::RenderTarget::draw(const sf::Drawable&, const sf::RenderStates&)’
-  237 |     void draw(const Drawable& drawable, const RenderStates& states = RenderStates::Default);
-      |          ^~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:237:31: note:   no known conversion for argument 1 from ‘std::vector<sf::RectangleShape>’ to ‘const sf::Drawable&’
-  237 |     void draw(const Drawable& drawable, const RenderStates& states = RenderStates::Default);
-      |               ~~~~~~~~~~~~~~~~^~~~~~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:248:10: note: candidate: ‘void sf::RenderTarget::draw(const sf::Vertex*, std::size_t, sf::PrimitiveType, const sf::RenderStates&)’
-  248 |     void draw(const Vertex* vertices, std::size_t vertexCount,
-      |          ^~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:248:10: note:   candidate expects 4 arguments, 1 provided
-/usr/include/SFML/Graphics/RenderTarget.hpp:258:10: note: candidate: ‘void sf::RenderTarget::draw(const sf::VertexBuffer&, const sf::RenderStates&)’
-  258 |     void draw(const VertexBuffer& vertexBuffer, const RenderStates& states = RenderStates::Default);
-      |          ^~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:258:35: note:   no known conversion for argument 1 from ‘std::vector<sf::RectangleShape>’ to ‘const sf::VertexBuffer&’
-  258 |     void draw(const VertexBuffer& vertexBuffer, const RenderStates& states = RenderStates::Default);
-      |               ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:269:10: note: candidate: ‘void sf::RenderTarget::draw(const sf::VertexBuffer&, std::size_t, std::size_t, const sf::RenderStates&)’
-  269 |     void draw(const VertexBuffer& vertexBuffer, std::size_t firstVertex, std::size_t vertexCount, const RenderStates& states = RenderStates::Default);
-      |          ^~~~
-/usr/include/SFML/Graphics/RenderTarget.hpp:269:10: note:   candidate expects 4 arguments, 1 provided
-./src/gui.cpp: In member function ‘void Gui::showVelocityField()’:
-./src/gui.cpp:380:34: error: ‘__gnu_cxx::__alloc_traits<std::allocator<sf::RectangleShape>, sf::RectangleShape>::value_type’ {aka ‘class sf::RectangleShape’} has no member named ‘position’; did you mean ‘sf::Vector2f sf::Transformable::m_position’? (not accessible from this context)
-  380 |    this->vf[this->mesh.IDX(i,j)].position = sf::Vector2f(x,y);
-      |                                  ^~~~~~~~
-In file included from /usr/include/SFML/Graphics/Shape.hpp:33,
-                 from /usr/include/SFML/Graphics/CircleShape.hpp:32,
-                 from /usr/include/SFML/Graphics.hpp:34,
-                 from ./src/include/gui.h:1,
-                 from ./src/gui.cpp:8:
-/usr/include/SFML/Graphics/Transformable.hpp:320:23: note: declared private here
-  320 |     Vector2f          m_position;                   ///< Position of the object in the 2D world
-      |                       ^~~~~~~~~~
-./src/gui.cpp:381:34: error: ‘__gnu_cxx::__alloc_traits<std::allocator<sf::RectangleShape>, sf::RectangleShape>::value_type’ {aka ‘class sf::RectangleShape’} has no member named ‘color’
-  381 |    this->vf[this->mesh.IDX(i,j)].color = sf::Color::Red;
-      |                                  ^~~~~
-make: *** [Makefile:2: build] Error 1
+mkdir -p obj && mv ./*.o ./obj
+g++ -g ./obj/*.o -o main -lsfml-graphics -lsfml-window -lsfml-system
+/usr/bin/ld: ./obj/test.o: in function `FluidCubeCreate(int, int, float, float, float)':
+/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:26: multiple definition of `FluidCubeCreate(int, int, float, float, float)'; ./obj/gui.o:/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:26: first defined here
+/usr/bin/ld: ./obj/test.o: in function `FluidCubeFree(FluidCube*)':
+/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:48: multiple definition of `FluidCubeFree(FluidCube*)'; ./obj/gui.o:/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:48: first defined here
+collect2: error: ld returned 1 exit status
+make: *** [Makefile:4: build] Error 1

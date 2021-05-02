@@ -4,134 +4,125 @@
  * TODO: write the lin_solv, diffuse, advect, project, step functions as just individual functions not associated with any class
  * TODO: find out what the purpose of s is
  */
-#define ADD_DENSITY 5000
 #include "include/gui.h"
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
 
-void Gui::fluidCubeStep()
-{
-    int nX          = this->mesh.numI;
-    int nY          = this->mesh.numJ;
-    float visc     = this->fluidCube[0].visc;
-    float diff     = this->fluidCube[0].diff;
-    float dt       = this->fluidCube[0].dt;
+#define ADD_DENSITY 200
+#define DIFFUSION 0.0001
+#define VISCOSITY 0.0001
+#define DT 0.2
 
-    for (int i = 0; i < this->fluidCube.size(); i++){
-	    this->uX[i] = this->fluidCube[i].uX;
-	    this->uY[i] = this->fluidCube[i].uY;
-	    this->uX0[i] = this->fluidCube[i].uX0;
-	    this->uY0[i] = this->fluidCube[i].uY0;
-	    this->s[i] = this->fluidCube[i].s;
-	    this->density[i] = this->fluidCube[i].density;
-    }
+#define IX(x, y) ((x) + (y) * (MESH_SIZE_X/GRID_SIZE_X))
 
-    for(int i = 0; i < this->mesh.numI; i++){
-	    for(int j = 0; j < this->mesh.numJ; j++){
-		    this->s[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].density;
-		    this->fluidCube[this->mesh.IDX(i,j)].s = this->fluidCube[this->mesh.IDX(i,j)].density;
-		    this->uX0[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].uX;
-		    this->uY0[this->mesh.IDX(i,j)] = this->fluidCube[this->mesh.IDX(i,j)].uY;
-	    }
-    }
+Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
+/*		     vf(sf::LineStrip, (MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)),\ */
+			   window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFlow",sf::Style::Close)){}
+Gui::~Gui(){}
 
-    this->diffuse(1, this->uX0, this->uX, visc, dt, kITER, nX, nY);
-    this->diffuse(2, this->uY0, this->uY, visc, dt, kITER, nX, nY);
+FluidCube *FluidCubeCreate(int sizeX, int sizeY, float diffusion, float viscosity, float dt) {
+	FluidCube *cube = (FluidCube*)malloc(sizeof(*cube));
+	cube->nX = sizeX;
+	cube->nY = sizeY;
+	
+	cube ->dt = dt;
+	cube->diff = diffusion;
+	cube->visc = viscosity;
+	
+	cube->s = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	cube->density = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	
+	cube->uX = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	cube->uY = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	
+	cube->uX0 = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	cube->uY0 = (float*)calloc( cube->nX * cube->nY, sizeof(float));
+	
+	
+	return cube;
+}
 
-    this->project(this->uX0, this->uY0, this->uX, this->uY, kITER, nX, nY);
-
-    this->advect(1, this->uX, this->uX0, this->uX0, this->uY0, dt, nX, nY);
-    this->advect(2, this->uY, this->uY0, this->uX0, this->uY0, dt, nX, nY);
-
-    this->project(this->uX, this->uY, this->uX0, this->uY0, kITER, nX, nY);
-
-    this->diffuse(0, this->s, this->density, diff, dt, kITER, nX, nY);
-    for(int i = 0; i < this->mesh.numI; i++){
-	    for(int j = 0; j < this->mesh.numJ; j++){
-		    this->fluidCube[this->mesh.IDX(i,j)].density = this->density[this->mesh.IDX(i,j)];
-		    this->fluidCube[this->mesh.IDX(i,j)].uX =  this->uX[this->mesh.IDX(i,j)];
-		    this->fluidCube[this->mesh.IDX(i,j)].uY =  this->uY[this->mesh.IDX(i,j)];
-	    }
-    }
-    this->advect(0, this->density, this->s, this->uX, this->uY, dt, nX, nY);
+void FluidCubeFree(FluidCube *cube) {
+	free(cube->s);
+	free(cube->density);
+	
+	free(cube->uX);
+	free(cube->uY);
+	
+	free(cube->uX0);
+	free(cube->uY0);
+	
+	free(cube);
 }
 
 void Gui::setBnd(int b, float *x, int nX, int nY)
 {
     for(int i = 1; i < nX - 1; i++) {
-        x[this->mesh.IDX(i, 0  )] = b == 2 ? -x[this->mesh.IDX(i, 1  )] : x[this->mesh.IDX(i, 1  )];
-        x[this->mesh.IDX(i, nY-1)] = b == 2 ? -x[this->mesh.IDX(i, nY-2)] : x[this->mesh.IDX(i, nY-2)];
+        x[IX(i, 0  )] = b == 2 ? -x[IX(i, 1  )] : x[IX(i, 1  )];
+        x[IX(i, nY-1)] = b == 2 ? -x[IX(i, nY-2)] : x[IX(i, nY-2)];
     }
     for(int j = 1; j < nY - 1; j++) {
-        x[this->mesh.IDX(0  , j)] = b == 1 ? -x[this->mesh.IDX(1  , j)] : x[this->mesh.IDX(1  , j)];
-        x[this->mesh.IDX(nX-1, j)] = b == 1 ? -x[this->mesh.IDX(nX-2, j)] : x[this->mesh.IDX(nX-2, j)];
+        x[IX(0  , j)] = b == 1 ? -x[IX(1  , j)] : x[IX(1  , j)];
+        x[IX(nX-1, j)] = b == 1 ? -x[IX(nX-2, j)] : x[IX(nX-2, j)];
     }
-
-	// averaging corner values
-	x[this->mesh.IDX(0, 0)] 	= 0.5f * (x[this->mesh.IDX(1, 0)] + x[this->mesh.IDX(0, 1)]);
-	x[this->mesh.IDX(0, nY-1)]	= 0.5f * (x[this->mesh.IDX(1, nY-1)] + x[this->mesh.IDX(0, nY-2)]);
-	x[this->mesh.IDX(nX-1, 0)]	= 0.5f * (x[this->mesh.IDX(nX-2,0)] + x[this->mesh.IDX(nX-1, 1)]);
-	x[this->mesh.IDX(nX-1, nY-1)] = 0.5f * (x[this->mesh.IDX(nX-2, nY-1)] + x[this->mesh.IDX(nX-1, nY-2)]);
+    
+    x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+	x[IX(0, nY-1)] = 0.5 * (x[IX(1, nY-1)] + x[IX(0, nY-2)]);
+	x[IX(nX-1, 0)] = 0.5 * (x[IX(nX-2, 0)] + x[IX(nX-1, 1)]);
+    x[IX(nX-1, nY-1)] = 0.5 * (x[IX(nX-2, nY-1)] + x[IX(nX-1, nY-2)]);
 }
 
-void Gui::linSolve(int b, float *x, float *x0, float a, float c, int nX, int nY)
+void Gui::linSolve(int b, float *x, float *x0, float a, float c, int iter, int nX, int nY)
 {
     float cRecip = 1.0 / c;
-    for (int k = 0; k < kITER; k++) {
-            for (int j = 1; j < nY - 1; j++) {
-                for (int i = 1; i < nX - 1; i++) {
-                    x[this->mesh.IDX(i, j)] =
-                        (x0[this->mesh.IDX(i, j)]
-                            + a*(    x[this->mesh.IDX(i+1, j)]
-                                    +x[this->mesh.IDX(i-1, j)]
-                                    +x[this->mesh.IDX(i  , j+1)]
-                                    +x[this->mesh.IDX(i  , j-1)]
-                           )) * cRecip;
-                }
+    for (int k = 0; k < iter; k++) {
+        for (int j = 1; j < nY - 1; j++) {
+            for (int i = 1; i < nX - 1; i++) {
+                x[IX(i, j)] =
+                    (x0[IX(i, j)]
+                        + a*(    x[IX(i+1, j  )]
+                                +x[IX(i-1, j  )]
+                                +x[IX(i  , j+1)]
+                                +x[IX(i  , j-1)]
+                       )) * cRecip;
             }
+        }
         setBnd(b, x, nX, nY);
     }
-    /*for (int i = 0; i < this->mesh.numI; i++){
-	    for (int j = 0;j < this->mesh.numJ; j++){
-		    printf("%f ",this->fluidCube[this->mesh.IDX(i,j)].density);
-	    }
-	    printf("\n");
-    }
-    printf("\n\n");*/
 }
 
-void Gui::diffuse (int b, float *x0, float *x, float diff, float dt, int iter, int nX, int nY) 
+void Gui::diffuse (int b, float *x, float *x0, float diff, float dt, int iter, int nX, int nY)
 {
     float a = dt * diff * (nX - 2) * (nY - 2);
-    linSolve(b, x, x0, a, 1 + 6 * a, nX, nY);
+    linSolve(b, x, x0, a, 1 + 4 * a, iter, nX, nY);
 }
 
 void Gui::project(float *velocX, float *velocY, float *p, float *div, int iter, int nX, int nY)
 {
-        for (int j = 1; j < nY - 1; j++) {
-            for (int i = 1; i < nX - 1; i++) {
-                div[this->mesh.IDX(i, j)] = -0.5f*(
-                         velocX[this->mesh.IDX(i+1, j)]
-                        -velocX[this->mesh.IDX(i-1, j)]
-                        +velocY[this->mesh.IDX(i  , j+1)]
-                        -velocY[this->mesh.IDX(i  , j-1)]
-                    )/(0.5f*(nX+nY));
-                p[this->mesh.IDX(i, j)] = 0;
-            }
+    for (int j = 1; j < nY - 1; j++) {
+        for (int i = 1; i < nX - 1; i++) {
+            div[IX(i, j)] = -0.5f*(
+                     velocX[IX(i+1, j  )]
+                    -velocX[IX(i-1, j  )]
+                    +velocY[IX(i  , j+1)]
+                    -velocY[IX(i  , j-1)]
+                )/(0.5*(nX + nY));
+            p[IX(i, j)] = 0;
         }
+    }
     setBnd(0, div, nX, nY); 
     setBnd(0, p, nX, nY);
-    linSolve(0, p, div, 1, 6, nX, nY);
+    linSolve(0, p, div, 1, 4, iter, nX, nY);
     
-        for (int j = 1; j < nY - 1; j++) {
-            for (int i = 1; i < nX - 1; i++) {
-                velocX[this->mesh.IDX(i, j)] -= 0.5f * (  p[this->mesh.IDX(i+1, j)]
-                                                -p[this->mesh.IDX(i-1, j)]) * nX;
-                velocY[this->mesh.IDX(i, j)] -= 0.5f * (  p[this->mesh.IDX(i, j+1)]
-                                                -p[this->mesh.IDX(i, j-1)]) * nY;
-            }
+    for (int j = 1; j < nY - 1; j++) {
+        for (int i = 1; i < nX - 1; i++) {
+            velocX[IX(i, j)] -= 0.5f * (  p[IX(i+1, j)]
+                                         -p[IX(i-1, j)]) * nX;
+            velocY[IX(i, j)] -= 0.5f * (  p[IX(i, j+1)]
+                                         -p[IX(i, j-1)]) * nY;
         }
+    }
     setBnd(1, velocX, nX, nY);
     setBnd(2, velocY, nX, nY);
 }
@@ -146,56 +137,81 @@ void Gui::advect(int b, float *d, float *d0,  float *velocX, float *velocY, floa
     float s0, s1, t0, t1;
     float tmp1, tmp2, x, y;
     
-    float nXfloat = nX; 
-    float nYfloat = nY; 
+    float nXfloat = nX;
+    float nYfloat = nY;
     float ifloat, jfloat;
     int i, j;
     
-        for(j = 1, jfloat = 1; j < nY - 1; j++, jfloat++) { 
-            for(i = 1, ifloat = 1; i < nX - 1; i++, ifloat++) {
-                tmp1 = dtx * velocX[this->mesh.IDX(i, j)];
-                tmp2 = dty * velocY[this->mesh.IDX(i, j)];
-                x    = ifloat - tmp1; 
-                y    = jfloat - tmp2;
-                
-                if(x < 0.5f) x = 0.5f; 
-                if(x > nXfloat + 0.5f) x = nXfloat + 0.5f; 
-                i0 = floorf(x); 
-                i1 = i0 + 1.0f;
-                if(y < 0.5f) y = 0.5f; 
-                if(y > nYfloat + 0.5f) y = nYfloat + 0.5f; 
-                j0 = floorf(y);
-                j1 = j0 + 1.0f; 
-                
-                s1 = x - i0; 
-                s0 = 1.0f - s1; 
-                t1 = y - j0; 
-                t0 = 1.0f - t1;
-                
-                int i0i = i0;
-                int i1i = i1;
-                int j0i = j0;
-                int j1i = j1;
-                
-                d[this->mesh.IDX(i, j)] = 
-                
-                    s0 * ( t0 * (d0[this->mesh.IDX(i0i, j0i)]
-                                + d0[this->mesh.IDX(i0i, j0i)])
-                        +( t1 * (d0[this->mesh.IDX(i0i, j1i)]
-                                + d0[this->mesh.IDX(i0i, j1i)])))
-                   +s1 * ( t0 * (d0[this->mesh.IDX(i1i, j0i)]
-                                + d0[this->mesh.IDX(i1i, j0i)])
-                        +( t1 * (d0[this->mesh.IDX(i1i, j1i)]
-                                + d0[this->mesh.IDX(i1i, j1i)])));
-            }
+    for(j = 1, jfloat = 1; j < nY - 1; j++, jfloat++) { 
+        for(i = 1, ifloat = 1; i < nX - 1; i++, ifloat++) {
+            tmp1 = dtx * velocX[IX(i, j)];
+            tmp2 = dty * velocY[IX(i, j)];
+            x    = ifloat - tmp1; 
+            y    = jfloat - tmp2;
+            
+            if(x < 0.5f) x = 0.5f; 
+            if(x > nXfloat + 0.5f) x = nXfloat + 0.5f; 
+            i0 = floor(x); 
+            i1 = i0 + 1.0f;
+            if(y < 0.5f) y = 0.5f; 
+            if(y > nYfloat + 0.5f) y = nYfloat + 0.5f; 
+            j0 = floorf(y);
+            j1 = j0 + 1.0f; 
+            
+            s1 = x - i0; 
+            s0 = 1.0f - s1; 
+            t1 = y - j0; 
+            t0 = 1.0f - t1;
+            
+            int i0i = i0;
+            int i1i = i1;
+            int j0i = j0;
+            int j1i = j1;
+            
+            d[IX(i, j)] = s0 * ( t0 * d0[IX(i0i, j0i)]
+                              +( t1 * d0[IX(i0i, j1i)]))
+                         +s1 * ( t0 * d0[IX(i1i, j0i)]
+                              +( t1 * d0[IX(i1i, j1i)]));
         }
+    }
     setBnd(b, d, nX, nY);
 }
 
-Gui::Gui() : mesh(MESH_SIZE_X, MESH_SIZE_Y, GRID_SIZE_X, GRID_SIZE_Y),\
-/*		     vf(sf::LineStrip, (MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)),\ */
-			   window(sf::RenderWindow(sf::VideoMode(WINDOW_X, WINDOW_Y), "ViFlow",sf::Style::Close)){}
-Gui::~Gui(){}
+
+void Gui::fluidCubeStep(FluidCube *cube)
+{
+    int nX = cube->nX;
+    int nY = cube->nY;
+    float visc     = cube->visc;
+    float diff     = cube->diff;
+    float dt       = cube->dt;
+    float *uX      = cube->uX;
+    float *uY      = cube->uY;
+    float *uX0     = cube->uX0;
+    float *uY0     = cube->uY0;
+    float *s       = cube->s;
+    float *density = cube->density;
+    
+    diffuse(1, uX0, uX, visc, dt, 4, nX, nY);
+    diffuse(2, uY0, uY, visc, dt, 4, nX, nY);
+    
+    project(uX0, uY0, uX, uY, 4, nX, nY);
+    
+    advect(1, uX, uX0, uX0, uY0, dt, nX, nY);
+    advect(2, uY, uY0, uX0, uY0, dt, nX, nY);
+    
+    project(uX, uY, uX0, uY0, 4, nX, nY);
+    
+    diffuse(0, s, density, diff, dt, 4, nX, nY);
+    advect(0, density, s, uX, uY, dt, nX, nY);
+}
+
+int Gui::clamp (int val, int min, int max) {
+    if (val > max) return max;
+    if (val < min) return min;
+    return val;
+}
+
 void Gui::Run(){
 
 	//f key pressed
@@ -214,7 +230,8 @@ void Gui::Run(){
 	int flag = 1;
 	sf::Vector2i currMouseCoords = sf::Mouse::getPosition(this->window);
 	sf::Vector2i prevMouseCoords = currMouseCoords;
-	FluidCube fC; // blue print
+	this->cube  = FluidCubeCreate(this->mesh.numI, this->mesh.numJ, DIFFUSION, VISCOSITY, DT); // blue print
+
 	// calculate the spacing required to position the mesh in the screen center
 	this->mesh.getMeshLoc(WINDOW_X, WINDOW_Y);
 	// make rectangles and put them in the mesh
@@ -222,9 +239,6 @@ void Gui::Run(){
 	for (int i = 0; i < this->mesh.numI; i++){
 		for (int j = 0; j < this->mesh.numJ; j++){
 
-			// make a fluidCube for each grid
-			fluidCube.push_back(fC);
-			// match each rectangle with its grid position
 			shapeGrid[this->mesh.IDX(i,j)].setPosition(\
 					this->mesh.meshLocX + i*this->mesh.gridSizeX,\
 					this->mesh.meshLocY + j*this->mesh.gridSizeY\
@@ -232,10 +246,6 @@ void Gui::Run(){
 			shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(1);
 			shapeGrid[this->mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
 			shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color::Black);
-
-//			 debug snippet to visualize the raw grid  */
-/*			if ( (i+j)%2 == 0) 
-				shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color(rand()%255,rand()%255,rand()%255)); */
 
 			shapeGrid[this->mesh.IDX(i,j)].setSize(sf::Vector2f(this->mesh.gridSizeX, this->mesh.gridSizeY));
 		}
@@ -271,15 +281,15 @@ void Gui::Run(){
 		this->addVelocity(currMouseCoords, amountX, amountY);
 		this->showDetails_stub();
 		if (flag == 1){
-			this->fluidCube[this->mesh.IDX(30,30)].density += ADD_DENSITY;
+			this->cube->density[this->mesh.IDX(30,30)] += ADD_DENSITY;
 			flag = 0;
 		}
-		this->fluidCubeStep();
+		this->fluidCubeStep(this->cube);
 		for (int i = 0; i < this->mesh.numI; i++){
 			for (int j = 0; j < this->mesh.numJ; j++){
 				shapeGrid[this->mesh.IDX(i,j)].setFillColor(\
-						sf::Color(255, 255, 255, (this->fluidCube[this->mesh.IDX(i,j)].density > 255) \
-						? 255 : this->fluidCube[this->mesh.IDX(i,j)].density)\
+						sf::Color(255, 255, 255, (this->cube->density[this->mesh.IDX(i,j)] > 255) \
+						? 255 : this->cube->density[this->mesh.IDX(i,j)])\
 					);
 				this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
 			}
@@ -287,22 +297,22 @@ void Gui::Run(){
 		prevMouseCoords = currMouseCoords;
 		currMouseCoords = this->getMousePointedGrid(currMouseCoords);
         	this->text.setString("Density: " +  \
-				std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].density) + \
+				std::to_string((int)this->cube->density[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) + \
 				"\n" +\
 				" uX0: " +\
-			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uX0) +\
+			       	std::to_string((int)this->cube->uX0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY0: " +\
-			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uY0) +\
+			       	std::to_string((int)this->cube->uY0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uX: " +\
-			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uX) +\
+			       	std::to_string((int)this->cube->uX[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY: " +\
-			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].uY) +\
+			       	std::to_string((int)this->cube->uY[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" s: " +\
-			       	std::to_string((int)this->fluidCube[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)].s)\
+			       	std::to_string((int)this->cube->s[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)])\
 				);
 		this->window.draw(this->text);
 		if(fpressed){
@@ -343,9 +353,7 @@ void Gui::addDensity(sf::Vector2i coords, int amount){
 	printf("i = %d, j = %d \n",i,j);*/
 	if (( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1) || \
 	 ( i != 0 || j != 0))
-		this->fluidCube[this->mesh.IDX(i,j)].density += amount;
-
-//	this->fluidCube[this->mesh.IDX(30,30)].density += amount;
+		this->cube->density[this->mesh.IDX(i,j)] += amount;
 }
 
 
@@ -356,9 +364,8 @@ void Gui::addVelocity(sf::Vector2i coords, int amountX, int amountY){
 	j = val.y;
 	if (( i != this->mesh.numI - 1 && j != this->mesh.numJ - 1) ||\
 	 ( i != 0 || j != 0)){
-		this->fluidCube[this->mesh.IDX(i,j)].uX += amountX;
-		this->fluidCube[this->mesh.IDX(i,j)].uY += amountY;
-//		printf("u : (%f,%f)\n",this->fluidCube[this->mesh.IDX(i,j)].uX0,this->fluidCube[this->mesh.IDX(i,j)].uY0);
+		this->cube->uX[this->mesh.IDX(i,j)] += amountX/10;
+		this->cube->uY[this->mesh.IDX(i,j)] += amountY/10;
 	}
 }
 
@@ -373,7 +380,7 @@ void Gui::showVelocityField(){
 			// get the center location for each rectangle grid
 			x = this->mesh.meshLocX + (this->mesh.gridSizeX * i) + this->mesh.gridSizeX/2;
 			y = this->mesh.meshLocY + (this->mesh.gridSizeY * j) + this->mesh.gridSizeY/2;
-			radAngle = atan2(this->fluidCube[this->mesh.IDX(i,j)].uY, this->fluidCube[this->mesh.IDX(i,j)].uX);
+			radAngle = atan2(this->cube->uY[this->mesh.IDX(i,j)], this->cube->uX[this->mesh.IDX(i,j)]);
 		//	printf("angle = %f\n", 180/M_PI*radAngle);
 			this->vf[this->mesh.IDX(i,j)].setSize(sf::Vector2f(10,1));
 			this->vf[this->mesh.IDX(i,j)].setPosition(x,y);

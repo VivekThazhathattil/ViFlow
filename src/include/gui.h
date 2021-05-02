@@ -7,31 +7,28 @@
 
 class Gui{
 	private: 
-		float uX[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
-		float uY[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
-		float uX0[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
-		float uY0[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
-		float s[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
-		float density[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)];
+		FluidCube *cube;
 
 		sf::Font font;
 		sf::Text text;
 		sf::RenderWindow window;
 		Mesh mesh;
-		std::vector<FluidCube> fluidCube;
 
 		sf::RectangleShape vf[(MESH_SIZE_X/GRID_SIZE_X)*(MESH_SIZE_Y/GRID_SIZE_Y)]; // for velocity field
 	public:
 		Gui();
 		~Gui();
+
 		void Run();
-		void setBnd(int b, float *x, int nX, int nY);
-		void linSolve(int b, float *x, float *x0, float a, float c, int nX, int nY);
-		void fluidCubeStep();
-		void diffuse (int b, float *x, float *x0, float diff, float dt, int iter, int nX, int nY);
-		void project(float *velocX, float *velocY, float *p, float *div, int iter, int nX, int nY);
-		void advect(int b, float *d, float *d0,  float *velocX, float *velocY, float dt, int nX, int nY);
-		
+
+		static void setBnd(int b, float *x, int nX, int nY);
+		static void linSolve(int b, float *x, float *x0, float a, float c, int iter, int nX, int nY);
+		void fluidCubeStep(FluidCube *cube);
+		static void diffuse (int b, float *x, float *x0, float diff, float dt, int iter, int nX, int nY);
+		static void project(float *velocX, float *velocY, float *p, float *div, int iter, int nX, int nY);
+		static void advect(int b, float *d, float *d0,  float *velocX, float *velocY, float dt, int nX, int nY);
+		int clamp (int val, int min, int max);
+
 		void addDensity(sf::Vector2i coords, int amount);
 		void addVelocity(sf::Vector2i coords, int amountX, int amountY);
 
