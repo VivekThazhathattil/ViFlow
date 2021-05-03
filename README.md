@@ -1,6 +1,6 @@
-![mp4](res/vf.mp4)
-![mp4](res/common.mp4)
-![mp4](res/grids.mp4)
+![png](res/vf.png)
+![png](res/common.png)
+![png](res/grids.png)
 
 # 2D flow simulation in C++
 Program written in C++ using SFML libraries to demonstrate Jos Stam's "Real Time Fluid Dynamics" concepts.
