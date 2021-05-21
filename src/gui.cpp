@@ -220,45 +220,45 @@ void Gui::Run(){
 	bool cpressed = false;
 
 	// load font 
-        if (!this->font.loadFromFile("res/arial.ttf"))
+        if (!font.loadFromFile("res/arial.ttf"))
         {
             // error...
         }
-	this->text.setFont(this->font);
-	this->text.setCharacterSize(14); // in pixels, not points!
-        this->text.setPosition(10, this->window.getSize().y - 14 - 100);
+	text.setFont(font);
+	text.setCharacterSize(14); // in pixels, not points!
+        text.setPosition(10, window.getSize().y - 14 - 100);
 
 	int amountX = 0, amountY = 0;
 	int flag = 1;
-	sf::Vector2i currMouseCoords = sf::Mouse::getPosition(this->window);
+	sf::Vector2i currMouseCoords = sf::Mouse::getPosition(window);
 	sf::Vector2i prevMouseCoords = currMouseCoords;
-	this->cube  = FluidCubeCreate(this->mesh.numI, this->mesh.numJ, DIFFUSION, VISCOSITY, DT); // blue print
+	cube  = FluidCubeCreate(mesh.numI, mesh.numJ, DIFFUSION, VISCOSITY, DT); // blue print
 
 	// calculate the spacing required to position the mesh in the screen center
-	this->mesh.getMeshLoc(WINDOW_X, WINDOW_Y);
+	mesh.getMeshLoc(WINDOW_X, WINDOW_Y);
 	// make rectangles and put them in the mesh
-	std::vector<sf::RectangleShape> shapeGrid(this->mesh.numI * this->mesh.numJ);
-	for (int i = 0; i < this->mesh.numI; i++){
-		for (int j = 0; j < this->mesh.numJ; j++){
+	std::vector<sf::RectangleShape> shapeGrid(mesh.numI * mesh.numJ);
+	for (int i = 0; i < mesh.numI; i++){
+		for (int j = 0; j < mesh.numJ; j++){
 
-			shapeGrid[this->mesh.IDX(i,j)].setPosition(\
-					this->mesh.meshLocX + i*this->mesh.gridSizeX,\
-					this->mesh.meshLocY + j*this->mesh.gridSizeY\
+			shapeGrid[mesh.IDX(i,j)].setPosition(\
+					mesh.meshLocX + i*mesh.gridSizeX,\
+					mesh.meshLocY + j*mesh.gridSizeY\
 					);
-			shapeGrid[this->mesh.IDX(i,j)].setFillColor(sf::Color::Black);
+			shapeGrid[mesh.IDX(i,j)].setFillColor(sf::Color::Black);
 
-			shapeGrid[this->mesh.IDX(i,j)].setSize(sf::Vector2f(this->mesh.gridSizeX, this->mesh.gridSizeY));
+			shapeGrid[mesh.IDX(i,j)].setSize(sf::Vector2f(mesh.gridSizeX, mesh.gridSizeY));
 		}
 	}
 
-	while (this->window.isOpen())
+	while (window.isOpen())
 	{
 
 		sf::Event e;
 		while(window.pollEvent(e))
 		{
 			if (e.type == sf::Event::Closed)
-				this->window.close();
+				window.close();
 			else if(e.type == sf::Event::KeyPressed)
 				if(e.key.code == sf::Keyboard::F)
 					fpressed = !fpressed;
@@ -268,68 +268,68 @@ void Gui::Run(){
 					cpressed = !cpressed;
 		}
 
-		this->window.clear();
+		window.clear();
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
 			//printf("Left Mouse Button pressed!\n");
-			currMouseCoords = sf::Mouse::getPosition(this->window);
-			this->addDensity(currMouseCoords, ADD_DENSITY);
+			currMouseCoords = sf::Mouse::getPosition(window);
+			addDensity(currMouseCoords, ADD_DENSITY);
 		}
-		currMouseCoords = sf::Mouse::getPosition(this->window);
+		currMouseCoords = sf::Mouse::getPosition(window);
 		amountX = currMouseCoords.x - prevMouseCoords.x;
 		amountY = currMouseCoords.y - prevMouseCoords.y;
-		this->addVelocity(currMouseCoords, amountX, amountY);
-		this->showDetails_stub();
+		addVelocity(currMouseCoords, amountX, amountY);
+		showDetails_stub();
 		if (flag == 1){
-			this->cube->density[this->mesh.IDX(30,30)] += ADD_DENSITY;
+			cube->density[mesh.IDX(30,30)] += ADD_DENSITY;
 			flag = 0;
 		}
-		this->fluidCubeStep(this->cube);
-		for (int i = 0; i < this->mesh.numI; i++){
-			for (int j = 0; j < this->mesh.numJ; j++){
-				if(this->cube->density[this->mesh.IDX(i,j)] < 1){
-					this->cube->density[this->mesh.IDX(i,j)] = 0;
+		fluidCubeStep(cube);
+		for (int i = 0; i < mesh.numI; i++){
+			for (int j = 0; j < mesh.numJ; j++){
+				if(cube->density[mesh.IDX(i,j)] < 1){
+					cube->density[mesh.IDX(i,j)] = 0;
 				}
-				shapeGrid[this->mesh.IDX(i,j)].setFillColor(\
-						sf::Color(255, 255, 255, (this->cube->density[this->mesh.IDX(i,j)] > 255) \
-						? 255 : this->cube->density[this->mesh.IDX(i,j)])\
+				shapeGrid[mesh.IDX(i,j)].setFillColor(\
+						sf::Color(255, 255, 255, (cube->density[mesh.IDX(i,j)] > 255) \
+						? 255 : cube->density[mesh.IDX(i,j)])\
 					);
 				if(gpressed){
-					shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(1);
-					shapeGrid[this->mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
+					shapeGrid[mesh.IDX(i,j)].setOutlineThickness(1);
+					shapeGrid[mesh.IDX(i,j)].setOutlineColor(sf::Color(255,255,255,20));
 				}
 				else
-					shapeGrid[this->mesh.IDX(i,j)].setOutlineThickness(0);
-				this->window.draw(shapeGrid[this->mesh.IDX(i,j)]);
+					shapeGrid[mesh.IDX(i,j)].setOutlineThickness(0);
+				window.draw(shapeGrid[mesh.IDX(i,j)]);
 			}
 		}
 		prevMouseCoords = currMouseCoords;
-		currMouseCoords = this->getMousePointedGrid(currMouseCoords);
-        	this->text.setString("Density: " +  \
-				std::to_string((float)this->cube->density[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) + \
+		currMouseCoords = getMousePointedGrid(currMouseCoords);
+        	text.setString("Density: " +  \
+				std::to_string((float)cube->density[mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) + \
 				"\n" +\
 				" uX0: " +\
-			       	std::to_string((float)this->cube->uX0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)cube->uX0[mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY0: " +\
-			       	std::to_string((float)this->cube->uY0[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)cube->uY0[mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uX: " +\
-			       	std::to_string((float)this->cube->uX[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)cube->uX[mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" uY: " +\
-			       	std::to_string((float)this->cube->uY[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
+			       	std::to_string((float)cube->uY[mesh.IDX(currMouseCoords.x,currMouseCoords.y)]) +\
 				"\n" +\
 				" s: " +\
-			       	std::to_string((int)this->cube->s[this->mesh.IDX(currMouseCoords.x,currMouseCoords.y)])\
+			       	std::to_string((int)cube->s[mesh.IDX(currMouseCoords.x,currMouseCoords.y)])\
 				);
-		this->window.draw(this->text);
+		window.draw(text);
 		if(fpressed){
-			this->showVelocityField();
-			for (auto& arrow : this->vf)
-			    this->window.draw(arrow);
+			showVelocityField();
+			for (auto& arrow : vf)
+			    window.draw(arrow);
 		}
-		this->window.display();
+		window.display();
 	}
 }
 

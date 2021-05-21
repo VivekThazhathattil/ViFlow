@@ -1,9 +1,0 @@
-g++ -g -std=c++17 -c ./src/*.cpp
-mkdir -p obj && mv ./*.o ./obj
-g++ -g ./obj/*.o -o main -lsfml-graphics -lsfml-window -lsfml-system
-/usr/bin/ld: ./obj/test.o: in function `FluidCubeCreate(int, int, float, float, float)':
-/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:26: multiple definition of `FluidCubeCreate(int, int, float, float, float)'; ./obj/gui.o:/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:26: first defined here
-/usr/bin/ld: ./obj/test.o: in function `FluidCubeFree(FluidCube*)':
-/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:48: multiple definition of `FluidCubeFree(FluidCube*)'; ./obj/gui.o:/mnt/sda_12/c++_course/grids/./src/include/fluidcube.h:48: first defined here
-collect2: error: ld returned 1 exit status
-make: *** [Makefile:4: build] Error 1
